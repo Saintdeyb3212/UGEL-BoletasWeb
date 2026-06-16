@@ -18,6 +18,8 @@ if (!app.Environment.IsDevelopment())
 builder.Services.AddDbContext<UgelDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("UgelConexion")));
 
+builder.Services.AddScoped<UGEL_Boletas.Services.Parser.IMotorProcesadorLis, UGEL_Boletas.Services.Parser.MotorProcesadorLis>();
+
 app.UseHttpsRedirection();
 app.UseRouting();
 
