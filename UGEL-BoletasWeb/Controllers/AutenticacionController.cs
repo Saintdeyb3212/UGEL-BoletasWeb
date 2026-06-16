@@ -1,0 +1,6 @@
+﻿namespace UGEL_BoletasWeb.Controllers
+{
+    public class AutenticacionController
+    {
+    }
+}
