@@ -17,7 +17,6 @@ namespace UGEL_BoletasWeb.Models.Entities
         [Column(TypeName = "varchar(8)")]
         public string DNI { get; private set; }
 
-        // El .lis separa Apellidos y Nombres, lo respetaremos en la BD para ordenamiento alfabético
         [Required]
         [StringLength(100)]
         [Column(TypeName = "varchar(100)")]
@@ -28,22 +27,21 @@ namespace UGEL_BoletasWeb.Models.Entities
         [Column(TypeName = "varchar(100)")]
         public string Nombres { get; private set; }
 
-        // Nuevos campos extraídos del .lis
         [StringLength(100)]
         [Column(TypeName = "varchar(100)")]
-        public string Cargo { get; private set; } // Ej: PROF. DE AULA, PROF. POR HORA
+        public string Cargo { get; private set; }
 
         [StringLength(50)]
         [Column(TypeName = "varchar(50)")]
-        public string TipoPensionista { get; private set; } // Ej: CESANTE, VIUDEZ
+        public string TipoPensionista { get; private set; }
 
         [StringLength(100)]
         [Column(TypeName = "varchar(100)")]
-        public string TipoPension { get; private set; } // Ej: CESANTE DOC. NIVELABLE
+        public string TipoPension { get; private set; }
 
         [StringLength(50)]
         [Column(TypeName = "varchar(50)")]
-        public string CuentaBancaria { get; private set; } // Ej: CTA- 4382300020
+        public string CuentaBancaria { get; private set; }
 
         [Required]
         [StringLength(2)]
@@ -54,6 +52,10 @@ namespace UGEL_BoletasWeb.Models.Entities
         [StringLength(4)]
         [Column(TypeName = "char(4)")]
         public string Anio { get; private set; }
+
+        // 🚀 NUEVO CAMPO CRÍTICO REQUERIDO
+        [Column(TypeName = "decimal(12,2)")]
+        public decimal MontoImponible { get; private set; }
 
         [Column(TypeName = "decimal(12,2)")]
         public decimal TotalIngresos { get; private set; }
@@ -69,10 +71,9 @@ namespace UGEL_BoletasWeb.Models.Entities
 
         protected BoletaCabecera() { }
 
-        // Constructor actualizado
         public BoletaCabecera(string dni, string apellidos, string nombres, string cargo,
                               string tipoPensionista, string tipoPension, string cuentaBancaria,
-                              string mes, string anio, decimal totalIngresos,
+                              string mes, string anio, decimal montoImponible, decimal totalIngresos,
                               decimal totalDescuentos, decimal montoLiquido, string usuarioCreacion)
         {
             ArgumentException.ThrowIfNullOrEmpty(dni);
@@ -88,6 +89,7 @@ namespace UGEL_BoletasWeb.Models.Entities
             CuentaBancaria = cuentaBancaria ?? string.Empty;
             Mes = mes;
             Anio = anio;
+            MontoImponible = montoImponible; // Asignación del nuevo campo
             TotalIngresos = totalIngresos;
             TotalDescuentos = totalDescuentos;
             MontoLiquido = montoLiquido;
