@@ -4,49 +4,75 @@ using System.Linq;
 using System.Threading.Tasks;
 using UGEL_BoletasWeb.Data.Context;
 using UGEL_BoletasWeb.Models.ViewModels;
+using UGEL_BoletasWeb.Services.PdfExport; // 🚀 Aseguramos el espacio de nombres
 
 namespace UGEL_BoletasWeb.Controllers
 {
     public class PagaduriaController : Controller
     {
         private readonly UgelDbContext _context;
+        private readonly IGeneradorBoletaPdf _pdfGenerator; // 🚀 FIX: Campo privado declarado
 
-        // Inyectamos la base de datos
-        public PagaduriaController(UgelDbContext context)
+        // 🚀 FIX: Inyección de dependencias completa en el constructor
+        public PagaduriaController(UgelDbContext context, IGeneradorBoletaPdf pdfGenerator)
         {
             _context = context;
+            _pdfGenerator = pdfGenerator;
         }
 
-        // 1. Mostrar la pantalla por primera vez (Vacía)
         [HttpGet]
         public IActionResult Consultar()
         {
             return View(new FiltroConsultaViewModel());
         }
 
-        // 2. Ejecutar la búsqueda cuando la oficinista presiona "Buscar"
+        // 🚀 ENDPOINT DE EXPORTACIÓN RECONOCIDO POR LA VISTA
+        [HttpGet]
+        public async Task<IActionResult> DescargarBoletaPdf(int id)
+        {
+            var boleta = await _context.BoletasCabecera
+                .Include(b => b.Detalles)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (boleta == null)
+            {
+                return NotFound("Error: La planilla solicitada no existe o fue eliminada del sistema.");
+            }
+
+            var pdfBytes = _pdfGenerator.GenerarBoleta(boleta);
+
+            string nombreArchivo = $"Boleta_{boleta.DNI}_{boleta.Anio}_{boleta.Mes}.pdf";
+            return File(pdfBytes, "application/pdf", nombreArchivo);
+        }
+
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Consultar(FiltroConsultaViewModel filtro)
         {
-            // Validamos que no envíen campos vacíos
             if (string.IsNullOrEmpty(filtro.DNI) || string.IsNullOrEmpty(filtro.Anio))
             {
-                ModelState.AddModelError("", "Por favor ingrese el DNI y el Año para buscar.");
+                ModelState.AddModelError("", "El número de DNI y el Año Fiscal son obligatorios para procesar la consulta.");
                 return View(filtro);
             }
 
-            // Búsqueda eficiente aprovechando los Índices (IX_BoletaCabecera_DNI) que creamos
-            var boletasEncontradas = await _context.BoletasCabecera
-                .Include(b => b.Detalles) // Eager Loading: Traemos los montos asociados
-                .Where(b => b.DNI == filtro.DNI && b.Anio == filtro.Anio)
-                .OrderByDescending(b => b.Mes) // Ordenamos para que el mes más reciente salga primero
+            var query = _context.BoletasCabecera
+                .Include(b => b.Detalles)
+                .Where(b => b.DNI == filtro.DNI && b.Anio == filtro.Anio);
+
+            if (!string.IsNullOrEmpty(filtro.Mes))
+            {
+                query = query.Where(b => b.Mes == filtro.Mes);
+            }
+
+            var boletasEncontradas = await query
+                .OrderByDescending(b => b.Mes)
                 .ToListAsync();
 
             filtro.Resultados = boletasEncontradas;
 
             if (!boletasEncontradas.Any())
             {
-                ViewBag.MensajeAviso = $"No se encontraron boletas para el DNI {filtro.DNI} en el año {filtro.Anio}.";
+                ViewBag.MensajeAviso = $"No se encontraron boletas registradas para el DNI {filtro.DNI} en el periodo solicitado.";
             }
 
             return View(filtro);

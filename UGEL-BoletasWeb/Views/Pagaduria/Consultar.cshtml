@@ -1,190 +1,218 @@
 ﻿@model UGEL_BoletasWeb.Models.ViewModels.FiltroConsultaViewModel
 @{
-    ViewData["Title"] = "Consulta Detallada de Planillas";
+    ViewData["Title"] = "Consulta de Boletas";
 }
 
-<div class="container mt-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="text-primary border-bottom pb-2 fw-bold">
-                <i class="bi bi-shield-check"></i> Módulo de Pagaduría - Consulta de Historial
-            </h2>
-        </div>
+<div class="reportes-card mb-3">
+
+    <div class="reportes-header">
+        <h2 class="reportes-title">
+            <i class="bi bi-file-earmark-text me-2"></i> Búsqueda de Planillas
+        </h2>
     </div>
 
-    <div class="card shadow-sm border-0 mb-4 bg-white">
-        <div class="card-body p-4">
-            <form asp-controller="Pagaduria" asp-action="Consultar" method="post" class="row g-3 align-items-end">
-                <div class="col-md-5">
-                    <label asp-for="DNI" class="form-label fw-bold text-secondary"><i class="bi bi-card-text"></i> Documento de Identidad (DNI)</label>
-                    <input asp-for="DNI" class="form-control form-control-lg border-primary" placeholder="Ingrese 8 dígitos" maxlength="8" required />
+    <div class="p-3 bg-white">
+        <form asp-controller="Pagaduria" asp-action="Consultar" method="post">
+            <div class="row g-2">
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="form-group-premium">
+                        <label asp-for="DNI" class="form-label-premium">Documento D.N.I.</label>
+                        <input asp-for="DNI" class="form-control-premium" placeholder="Ingrese 8 dígitos" maxlength="8" required />
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label asp-for="Anio" class="form-label fw-bold text-secondary"><i class="bi bi-calendar-event"></i> Periodo Anual</label>
-                    <select asp-for="Anio" class="form-select form-select-lg border-primary" required>
-                        <option value="">Seleccione el año...</option>
-                        <option value="2026">2026</option>
-                        <option value="2025">2025</option>
-                        <option value="2024">2024</option>
-                        <option value="2023">2023</option>
-                    </select>
+                <div class="col-xl-2 col-lg-3 col-md-6">
+                    <div class="form-group-premium">
+                        <label asp-for="Anio" class="form-label-premium">Año Fiscal</label>
+                        <input asp-for="Anio" type="number" class="form-control-premium fw-bold text-center" min="1980" max="2099" required />
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
-                        <i class="bi bi-search"></i> Buscar Registros
-                    </button>
+                <div class="col-xl-3 col-lg-5 col-md-12">
+                    <div class="form-group-premium">
+                        <label asp-for="Mes" class="form-label-premium">Mes de Planilla</label>
+                        <select asp-for="Mes" class="form-control-premium">
+                            <option value="">-- Todos los meses --</option>
+                            <option value="01">01 - Enero</option>
+                            <option value="02">02 - Febrero</option>
+                            <option value="03">03 - Marzo</option>
+                            <option value="04">04 - Abril</option>
+                            <option value="05">05 - Mayo</option>
+                            <option value="06">06 - Junio</option>
+                            <option value="07">07 - Julio</option>
+                            <option value="08">08 - Agosto</option>
+                            <option value="09">09 - Setiembre</option>
+                            <option value="10">10 - Octubre</option>
+                            <option value="11">11 - Noviembre</option>
+                            <option value="12">12 - Diciembre</option>
+                        </select>
+                    </div>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    @if (ViewBag.MensajeAviso != null)
-    {
-        <div class="alert alert-warning border-0 shadow-sm fw-bold">
-            <i class="bi bi-exclamation-circle-fill"></i> @ViewBag.MensajeAviso
-        </div>
-    }
-
-    @if (Model.Resultados != null && Model.Resultados.Any())
-    {
-        <div class="mb-3">
-            <h4 class="text-secondary fw-bold">
-                <i class="bi bi-person-badge"></i> Expediente Digital: <span class="text-dark">@Model.Resultados.First().Apellidos, @Model.Resultados.First().Nombres</span>
-            </h4>
-        </div>
-
-        <div class="accordion shadow-sm" id="accordionBoletas">
-            @for (int i = 0; i < Model.Resultados.Count; i++)
-            {
-                var boleta = Model.Resultados[i];
-                var collapseId = $"collapse_{i}";
-                var headingId = $"heading_{i}";
-
-                <div class="accordion-item border-0 mb-3 shadow-sm rounded overflow-hidden">
-                    <h2 class="accordion-header" id="@headingId">
-                        <button class="accordion-button collapsed bg-white text-dark py-3" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="false" aria-controls="@collapseId">
-                            <div class="row w-100 align-items-center text-center text-md-start">
-                                <div class="col-md-2 col-6 mb-2 mb-md-0">
-                                    <span class="badge bg-primary fs-6 px-3">Periodo: @boleta.Mes-@boleta.Anio</span>
-                                </div>
-                                <div class="col-md-4 col-6 mb-2 mb-md-0 fw-bold text-secondary text-truncate">
-                                    Cargo: <span class="text-dark fw-normal">@boleta.Cargo</span>
-                                </div>
-                                <div class="col-md-2 col-4 text-success fw-bold">
-                                    Ingresos: S/ @boleta.TotalIngresos.ToString("N2")
-                                </div>
-                                <div class="col-md-2 col-4 text-danger fw-bold">
-                                    Dsctos: S/ @boleta.TotalDescuentos.ToString("N2")
-                                </div>
-                                <div class="col-md-2 col-4 fw-bold text-primary fs-5">
-                                    Líquido: S/ @boleta.MontoLiquido.ToString("N2")
-                                </div>
-                            </div>
+                <div class="col-xl-2 col-lg-6 col-md-6">
+                    <div class="form-group-premium">
+                        <button type="submit" class="btn-search w-100">
+                            <i class="bi bi-search me-2"></i> BUSCAR
                         </button>
-                    </h2>
+                    </div>
+                </div>
+                <div class="col-xl-2 col-lg-6 col-md-6">
+                    <div class="form-group-premium">
+                        <a asp-action="Consultar" class="btn-clear w-100">LIMPIAR</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
-                    <div id="@collapseId" class="accordion-collapse collapse" aria-labelledby="@headingId" data-bs-parent="#accordionBoletas">
-                        <div class="accordion-body bg-light border-top p-4">
+@if (ViewBag.MensajeAviso != null)
+{
+    <div class="alert alert-warning py-2 px-3 fw-bold mb-3 border-0 shadow-sm" style="font-size: 0.85rem;">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @ViewBag.MensajeAviso
+    </div>
+}
 
-                            <div class="row g-3 mb-4 text-secondary fs-7 bg-white p-3 rounded shadow-sm border-start border-4 border-info">
-                                <div class="col-md-3 col-6">
-                                    <strong><i class="bi bi-bank"></i> Cuenta Bancaria:</strong> <span class="text-dark">@boleta.CuentaBancaria</span>
-                                </div>
-                                <div class="col-md-3 col-6">
-                                    <strong><i class="bi bi-file-earmark-text"></i> Tipo Pensionista:</strong> <span class="text-dark">@boleta.TipoPensionista</span>
-                                </div>
-                                <div class="col-md-3 col-6">
-                                    <strong><i class="bi bi-journal-text"></i> Régimen / Ley:</strong> <span class="text-dark">@boleta.TipoPension</span>
-                                </div>
-                                <div class="col-md-3 col-6 bg-warning bg-opacity-10 rounded px-2">
-                                    <strong class="text-warning-dark"><i class="bi bi-calculator"></i> M. Imponible:</strong>
-                                    <span class="text-dark fw-bold">S/ @boleta.MontoImponible.ToString("N2")</span>
-                                </div>
+@if (Model.Resultados != null && Model.Resultados.Any())
+{
+    @foreach (var boleta in Model.Resultados)
+    {
+        <div class="reportes-card mb-4">
+
+            <div class="reportes-header py-2 px-3 bg-light border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary text-white rounded px-2 py-1 me-3 fw-bold shadow-sm" style="font-size: 0.8rem;">@boleta.Mes - @boleta.Anio</div>
+                    <h6 class="mb-0 fw-bold text-uppercase text-white">@boleta.Apellidos, @boleta.Nombres</h6>
+                </div>
+                <a asp-controller="Pagaduria" asp-action="DescargarBoletaPdf" asp-route-id="@boleta.Id" class="btn-export" target="_blank">
+                    <i class="bi bi-file-earmark-pdf-fill"></i> EXPORTAR
+                </a>
+            </div>
+
+            <div class="p-3">
+
+                <table class="tabla-cabecera-datos">
+                    <tbody>
+                        <tr>
+                            <td class="lbl-celda">D.N.I.</td>
+                            <td class="val-celda font-monospace fw-bold">@boleta.DNI</td>
+                            <td class="lbl-celda">Cargo Actual</td>
+                            <td class="val-celda text-primary fw-bold text-uppercase">@boleta.Cargo</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-celda">Fec. Nacimiento</td>
+                            <td class="val-celda">@boleta.FechaNacimiento</td>
+                            <td class="lbl-celda">Tipo Pensionista</td>
+                            <td class="val-celda text-uppercase">@boleta.TipoPensionista</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-celda">Tiempo Servicio</td>
+                            <td class="val-celda">@boleta.TiempoServicio</td>
+                            <td class="lbl-celda">Régimen Legal</td>
+                            <td class="val-celda text-uppercase">@boleta.TipoPension</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-celda">Cód. EsSalud</td>
+                            <td class="val-celda font-monospace">@boleta.CodigoEsSalud</td>
+                            <td class="lbl-celda">Niv.Mag/G.Ocup</td>
+                            <td class="val-celda">@boleta.NivelMagisterial</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-celda">Cta. Ahorros</td>
+                            <td class="val-celda font-monospace">@boleta.CuentaBancaria</td>
+                            <td class="lbl-celda">Fechas Registr.</td>
+                            <td class="val-celda">@boleta.FechasRegistro</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-celda">Leyenda Perm.</td>
+                            <td colspan="3" class="val-celda">@(!string.IsNullOrEmpty(boleta.LeyendaPermanente) ? boleta.LeyendaPermanente : "-")</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-celda">Leyenda Mensual</td>
+                            <td colspan="3" class="val-celda">@(!string.IsNullOrEmpty(boleta.LeyendaMensual) ? boleta.LeyendaMensual : "-")</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <div class="border rounded px-3 py-2 h-100">
+                            <h6 class="fw-bold mb-2 pb-1 border-bottom" style="color: var(--success-green); font-size: 0.8rem;"><i class="bi bi-plus-circle-fill me-1"></i> INGRESOS</h6>
+                            <div class="multi-column-list">
+                                @{
+                                    var ingresos = boleta.Detalles.Where(d => d.TipoConcepto == "I").ToList();
+                                }
+                                @if (ingresos.Any())
+                                {
+                                    foreach (var i in ingresos)
+                                    {
+                                        <div class="item-concepto">
+                                            <span class="text-secondary font-monospace">@i.CodigoConcepto</span>
+                                            <span class="fw-bold text-success font-monospace">@i.Monto.ToString("N2")</span>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+
+                                    <div class="text-muted text-center p-1" style="font-size: 0.8rem;">No registra</div>
+                                }
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div class="card h-100 border-0 shadow-sm">
-                                        <div class="card-header bg-success bg-opacity-10 text-success fw-bold border-0">
-                                            <i class="bi bi-plus-circle-fill"></i> DESGLOSE DE INGRESOS (REMUNERACIONES)
+                    <div class="col-lg-5">
+                        <div class="border rounded px-3 py-2 h-100">
+                            <h6 class="fw-bold mb-2 pb-1 border-bottom" style="color: var(--danger-red); font-size: 0.8rem;"><i class="bi bi-dash-circle-fill me-1"></i> DESCUENTOS</h6>
+                            <div class="multi-column-list" style="column-count: 1;">
+                                @{
+                                    var descuentos = boleta.Detalles.Where(d => d.TipoConcepto == "D").ToList();
+                                }
+                                @if (descuentos.Any())
+                                {
+                                    foreach (var d in descuentos)
+                                    {
+                                        <div class="item-concepto">
+                                            <span class="text-secondary font-monospace">@d.CodigoConcepto</span>
+                                            <span class="fw-bold text-danger font-monospace">@d.Monto.ToString("N2")</span>
                                         </div>
-                                        <div class="card-body p-0">
-                                            <table class="table table-sm table-hover table-striped mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th class="ps-3">Concepto / Código</th>
-                                                        <th class="text-end pe-3">Monto</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var detalle in boleta.Detalles.Where(d => d.TipoConcepto == "I"))
-                                                    {
-                                                        <tr>
-                                                            <td class="ps-3 text-secondary">@detalle.CodigoConcepto</td>
-                                                            <td class="text-end pe-3 text-success fw-bold">S/ @detalle.Monto.ToString("N2")</td>
-                                                        </tr>
-                                                    }
-                                                </tbody>
-                                                <tfoot class="table-light fw-bold border-top">
-                                                    <tr>
-                                                        <td class="ps-3">TOTAL INGRESOS:</td>
-                                                        <td class="text-end pe-3 text-success">S/ @boleta.TotalIngresos.ToString("N2")</td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
+                                    }
+                                }
+                                else
+                                {
 
-                                <div class="col-md-6">
-                                    <div class="card h-100 border-0 shadow-sm">
-                                        <div class="card-header bg-danger bg-opacity-10 text-danger fw-bold border-0">
-                                            <i class="bi bi-dash-circle-fill"></i> DESGLOSE DE DESCUENTOS
-                                        </div>
-                                        <div class="card-body p-0">
-                                            <table class="table table-sm table-hover table-striped mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th class="ps-3">Concepto / Código</th>
-                                                        <th class="text-end pe-3">Monto</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var detalle in boleta.Detalles.Where(d => d.TipoConcepto == "D"))
-                                                    {
-                                                        <tr>
-                                                            <td class="ps-3 text-secondary">@detalle.CodigoConcepto</td>
-                                                            <td class="text-end pe-3 text-danger fw-bold">S/ @detalle.Monto.ToString("N2")</td>
-                                                        </tr>
-                                                    }
-                                                </tbody>
-                                                <tfoot class="table-light fw-bold border-top">
-                                                    <tr>
-                                                        <td class="ps-3">TOTAL DESCUENTOS:</td>
-                                                        <td class="text-end pe-3 text-danger">S/ @boleta.TotalDescuentos.ToString("N2")</td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
+                                    <div class="text-muted text-center p-1" style="font-size: 0.8rem;">No registra</div>
+                                }
                             </div>
-
-                            <div class="row mt-4 align-items-center">
-                                <div class="col-md-8 text-muted fs-8">
-                                    <i class="bi bi-info-circle"></i> Registrado en el sistema por <strong>@boleta.UsuarioCreacion</strong> el @boleta.FechaCreacion.ToString("dd/MM/yyyy HH:mm") UTC.
-                                </div>
-                                <div class="col-md-4 text-end">
-                                    <button class="btn btn-danger fw-bold w-100 shadow-sm">
-                                        <i class="bi bi-file-earmark-pdf-fill"></i> Exportar Documento PDF
-                                    </button>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 </div>
-            }
+
+                <div class="row mt-3 pt-3 border-top g-2">
+                    <div class="col-xl-3 col-6">
+                        <div class="p-2 bg-light rounded border text-center">
+                            <div class="text-muted fw-bold text-uppercase" style="font-size: 0.65rem;">M. Imponible</div>
+                            <div class="fw-bold text-dark mt-1" style="font-size: 1.1rem;">S/ @boleta.MontoImponible.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-6">
+                        <div class="p-2 rounded border text-center" style="background-color: #f0fdf4; border-color: #d1fae5;">
+                            <div class="fw-bold text-uppercase" style="font-size: 0.65rem; color: #047857;">T. Ingresos</div>
+                            <div class="fw-bold mt-1" style="font-size: 1.1rem; color: #065f46;">S/ @boleta.TotalIngresos.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-6">
+                        <div class="p-2 rounded border text-center" style="background-color: #fef2f2; border-color: #fee2e2;">
+                            <div class="fw-bold text-uppercase" style="font-size: 0.65rem; color: #b91c1c;">T. Descuentos</div>
+                            <div class="fw-bold mt-1" style="font-size: 1.1rem; color: #991b1b;">S/ @boleta.TotalDescuentos.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-6">
+                        <div class="p-2 rounded shadow-sm text-center" style="background-color: var(--primary-dark); color: white;">
+                            <div class="text-white-50 fw-bold text-uppercase" style="font-size: 0.65rem;">Líquido a Pagar</div>
+                            <div class="fw-bold mt-1" style="font-size: 1.25rem;">S/ @boleta.MontoLiquido.ToString("N2")</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
     }
-</div>
+}   

@@ -19,29 +19,46 @@ namespace UGEL_BoletasWeb.Models.Entities
 
         [Required]
         [StringLength(100)]
-        [Column(TypeName = "varchar(100)")]
         public string Apellidos { get; private set; }
 
         [Required]
         [StringLength(100)]
-        [Column(TypeName = "varchar(100)")]
         public string Nombres { get; private set; }
 
+        // --- 🚀 NUEVOS CAMPOS OFICIALES AÑADIDOS ---
+        [StringLength(20)]
+        public string FechaNacimiento { get; private set; }
+
         [StringLength(100)]
-        [Column(TypeName = "varchar(100)")]
         public string Cargo { get; private set; }
 
         [StringLength(50)]
-        [Column(TypeName = "varchar(50)")]
         public string TipoPensionista { get; private set; }
 
         [StringLength(100)]
-        [Column(TypeName = "varchar(100)")]
         public string TipoPension { get; private set; }
 
         [StringLength(50)]
-        [Column(TypeName = "varchar(50)")]
+        public string NivelMagisterial { get; private set; }
+
+        [StringLength(20)]
+        public string TiempoServicio { get; private set; }
+
+        [StringLength(50)]
+        public string CodigoEsSalud { get; private set; }
+
+        [StringLength(100)]
+        public string FechasRegistro { get; private set; }
+
+        [StringLength(50)]
         public string CuentaBancaria { get; private set; }
+
+        [StringLength(255)]
+        public string LeyendaPermanente { get; private set; }
+
+        [StringLength(255)]
+        public string LeyendaMensual { get; private set; }
+        // ---------------------------------------------
 
         [Required]
         [StringLength(2)]
@@ -53,7 +70,6 @@ namespace UGEL_BoletasWeb.Models.Entities
         [Column(TypeName = "char(4)")]
         public string Anio { get; private set; }
 
-        // 🚀 NUEVO CAMPO CRÍTICO REQUERIDO
         [Column(TypeName = "decimal(12,2)")]
         public decimal MontoImponible { get; private set; }
 
@@ -71,25 +87,30 @@ namespace UGEL_BoletasWeb.Models.Entities
 
         protected BoletaCabecera() { }
 
-        public BoletaCabecera(string dni, string apellidos, string nombres, string cargo,
-                              string tipoPensionista, string tipoPension, string cuentaBancaria,
-                              string mes, string anio, decimal montoImponible, decimal totalIngresos,
-                              decimal totalDescuentos, decimal montoLiquido, string usuarioCreacion)
+        // Constructor actualizado con los nuevos campos
+        public BoletaCabecera(string dni, string apellidos, string nombres, string fechaNacimiento, string cargo,
+                              string tipoPensionista, string tipoPension, string nivelMagisterial, string tiempoServicio,
+                              string codigoEsSalud, string fechasRegistro, string cuentaBancaria, string leyendaPermanente,
+                              string leyendaMensual, string mes, string anio, decimal montoImponible,
+                              decimal totalIngresos, decimal totalDescuentos, decimal montoLiquido, string usuarioCreacion)
         {
-            ArgumentException.ThrowIfNullOrEmpty(dni);
-            ArgumentException.ThrowIfNullOrEmpty(apellidos);
-            ArgumentException.ThrowIfNullOrEmpty(nombres);
-
             DNI = dni;
             Apellidos = apellidos;
             Nombres = nombres;
-            Cargo = cargo ?? string.Empty;
-            TipoPensionista = tipoPensionista ?? string.Empty;
-            TipoPension = tipoPension ?? string.Empty;
-            CuentaBancaria = cuentaBancaria ?? string.Empty;
+            FechaNacimiento = fechaNacimiento ?? "";
+            Cargo = cargo ?? "";
+            TipoPensionista = tipoPensionista ?? "";
+            TipoPension = tipoPension ?? "";
+            NivelMagisterial = nivelMagisterial ?? "";
+            TiempoServicio = tiempoServicio ?? "";
+            CodigoEsSalud = codigoEsSalud ?? "";
+            FechasRegistro = fechasRegistro ?? "";
+            CuentaBancaria = cuentaBancaria ?? "";
+            LeyendaPermanente = leyendaPermanente ?? "";
+            LeyendaMensual = leyendaMensual ?? "";
             Mes = mes;
             Anio = anio;
-            MontoImponible = montoImponible; // Asignación del nuevo campo
+            MontoImponible = montoImponible;
             TotalIngresos = totalIngresos;
             TotalDescuentos = totalDescuentos;
             MontoLiquido = montoLiquido;
@@ -99,7 +120,6 @@ namespace UGEL_BoletasWeb.Models.Entities
 
         public void AgregarDetalle(BoletaDetalle detalle)
         {
-            if (detalle == null) throw new ArgumentNullException(nameof(detalle));
             _detalles.Add(detalle);
         }
     }

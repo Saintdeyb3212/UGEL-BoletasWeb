@@ -5,11 +5,14 @@ namespace UGEL_BoletasWeb.Models.ViewModels
 {
     public class FiltroConsultaViewModel
     {
-        // Lo que el usuario escribe en la pantalla
         public string? DNI { get; set; }
-        public string? Anio { get; set; }
 
-        // Lo que el sistema devuelve (La lista de boletas encontradas)
+        // Heurística de UX: Inicializamos por defecto en el año actual de trabajo
+        public string? Anio { get; set; } = "2026";
+
+        // Nuevo campo para búsquedas específicas por mes
+        public string? Mes { get; set; }
+
         public List<BoletaCabecera> Resultados { get; set; } = new List<BoletaCabecera>();
     }
 }

@@ -38,7 +38,6 @@ namespace UGEL_BoletasWeb.Controllers
                     return RedirectToAction(nameof(SubirArchivoLis));
                 }
 
-                // 1. El Cerebro lee el archivo en memoria RAM
                 var boletasExtraidas = await _motorParser.ProcesarArchivoAsync(archivoLis, "AdminSistema");
 
                 if (boletasExtraidas.Count == 0)
@@ -47,28 +46,29 @@ namespace UGEL_BoletasWeb.Controllers
                     return RedirectToAction(nameof(SubirArchivoLis));
                 }
 
-                // --- 🚀 VALIDACIÓN QUIRÚRGICA ANTI-DUPLICADOS ---
+                // 🚀 FIX: VALIDACIÓN COMPUESTA (DNI + TIPO PENSIONISTA)
                 var mesPlanilla = boletasExtraidas[0].Mes;
                 var anioPlanilla = boletasExtraidas[0].Anio;
 
-                // Extraemos todos los DNIs que vienen en este archivo que intentan subir
-                var dnisEnArchivo = boletasExtraidas.Select(b => b.DNI).Distinct().ToList();
+                // Creamos llaves únicas en memoria (Ej: "20402663-SOBREVIVIENTE")
+                var llavesArchivo = boletasExtraidas.Select(b => $"{b.DNI}-{b.TipoPensionista}").Distinct().ToList();
 
-                // Le preguntamos a SQL Server si ya tiene ALGUNO de esos DNIs específicos en ese Mes y Año
-                var dnisDuplicados = await _context.BoletasCabecera
-                    .Where(b => b.Mes == mesPlanilla && b.Anio == anioPlanilla && dnisEnArchivo.Contains(b.DNI))
-                    .Select(b => b.DNI)
+                // Traemos solo las llaves de ese mes/año de la BD
+                var llavesBD = await _context.BoletasCabecera
+                    .Where(b => b.Mes == mesPlanilla && b.Anio == anioPlanilla)
+                    .Select(b => b.DNI + "-" + b.TipoPensionista)
                     .ToListAsync();
 
-                if (dnisDuplicados.Any())
+                // Comprobamos si hay choque de llaves
+                bool hayDuplicado = llavesArchivo.Any(llave => llavesBD.Contains(llave));
+
+                if (hayDuplicado)
                 {
-                    // ¡Freno de emergencia! Detectó que al menos un DNI de ese archivo ya se había subido.
-                    TempData["Error"] = $"ALERTA DE SEGURIDAD: El archivo que intenta subir contiene boletas que ya fueron registradas para el periodo {mesPlanilla}-{anioPlanilla}. No se procesó ningún dato para evitar duplicidad financiera.";
+                    TempData["Error"] = $"ALERTA DE SEGURIDAD: El archivo contiene boletas (del mismo tipo y DNI) que ya fueron registradas para el periodo {mesPlanilla}-{anioPlanilla}.";
                     return RedirectToAction(nameof(SubirArchivoLis));
                 }
                 // --------------------------------------------------
 
-                // 2. Si pasó el escáner de seguridad, se guarda todo masivamente
                 await _context.BoletasCabecera.AddRangeAsync(boletasExtraidas);
                 await _context.SaveChangesAsync();
 
@@ -81,5 +81,5 @@ namespace UGEL_BoletasWeb.Controllers
                 return RedirectToAction(nameof(SubirArchivoLis));
             }
         }
+        }
     }
-}

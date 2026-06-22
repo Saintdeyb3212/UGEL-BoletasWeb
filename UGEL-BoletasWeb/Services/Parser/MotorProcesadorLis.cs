@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using UGEL_BoletasWeb.Models.Entities;
+using System.Text;
 
 namespace UGEL_BoletasWeb.Services.Parser
 {
@@ -14,49 +15,46 @@ namespace UGEL_BoletasWeb.Services.Parser
         Task<List<BoletaCabecera>> ProcesarArchivoAsync(IFormFile archivoLis, string usuarioQueSube);
     }
 
-    public enum EstadoParser
-    {
-        BuscandoCabecera,
-        LeyendoCabecera,
-        LeyendoConceptos
-    }
+    public enum EstadoParser { BuscandoCabecera, LeyendoCabecera, LeyendoConceptos }
 
     public class MotorProcesadorLis : IMotorProcesadorLis
     {
         private static readonly Regex RxPeriodo = new Regex(@"([A-Z]+)\s*-\s*(\d{4})", RegexOptions.Compiled);
         private static readonly Regex RxApellidos = new Regex(@"Apellidos\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxNombres = new Regex(@"Nombres\s*:\s*(.+)", RegexOptions.Compiled);
+        private static readonly Regex RxFechaNac = new Regex(@"Fecha de Nacimiento\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxDni = new Regex(@"Identidad.*?(?<!\d)(\d{8})(?!\d)", RegexOptions.Compiled);
         private static readonly Regex RxCargo = new Regex(@"Cargo\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxTipoPensionista = new Regex(@"Tipo de Pensionista\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxTipoPension = new Regex(@"Tipo de Pension\s*:\s*(.+)", RegexOptions.Compiled);
+        private static readonly Regex RxNivelMag = new Regex(@"Niv\.Mag\./G\.Ocup\./Horas/HrsAdd\s*:\s*(.+)", RegexOptions.Compiled);
+        private static readonly Regex RxTiempoServ = new Regex(@"Tiempo de Servicio.*?:\s*([0-9-]+)", RegexOptions.Compiled);
+        private static readonly Regex RxEsSalud = new Regex(@"ESSALUD\s*:\s*(.+)", RegexOptions.Compiled);
+        private static readonly Regex RxFechaReg = new Regex(@"Fecha de Registro\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxCuenta = new Regex(@"Cta\. TeleAhorro.*:\s*(.+)", RegexOptions.Compiled);
+        private static readonly Regex RxLeyendaPerm = new Regex(@"Leyenda Permanente\s*:\s*(.*)", RegexOptions.Compiled);
+        private static readonly Regex RxLeyendaMens = new Regex(@"Leyenda Mensual\s*:\s*(.*)", RegexOptions.Compiled);
+
         private static readonly Regex RxSeparador = new Regex(@"={10,}", RegexOptions.Compiled);
-
-        // 🚀 AQUÍ ESTÁ EL EXTRACTOR DEL MONTO IMPONIBLE
-        private static readonly Regex RxMontoImponible = new Regex(@"MImponible\s*:?\s*([\d,]+\.\d{2})", RegexOptions.Compiled);
-
+        private static readonly Regex RxMontoImponible = new Regex(@"M\.?Imponible\s*:?\s*([\d,]+\.\d{2})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex RxConcepto = new Regex(@"(?<=^|\s)([+-])([a-zA-Z0-9_.-]+)\s+(\d+\.\d{2})", RegexOptions.Compiled);
 
         public async Task<List<BoletaCabecera>> ProcesarArchivoAsync(IFormFile archivoLis, string usuarioQueSube)
         {
-            if (archivoLis == null || archivoLis.Length == 0)
-                throw new ArgumentException("El archivo LIS está vacío o es nulo.");
-
             var boletasProcesadas = new List<BoletaCabecera>();
             EstadoParser estadoActual = EstadoParser.BuscandoCabecera;
-            string mesGlobal = "01";
-            string anioGlobal = DateTime.Now.Year.ToString();
+            string mesGlobal = "01", anioGlobal = DateTime.Now.Year.ToString();
 
-            string tempApellidos = "", tempNombres = "", tempDni = "", tempCargo = "";
-            string tempTipoPensionista = "", tempTipoPension = "", tempCuenta = "";
+            // Variables temporales completas
+            string tApe = "", tNom = "", tFecNac = "", tDni = "", tCargo = "", tTipoPta = "", tTipoPen = "";
+            string tNivMag = "", tTiemServ = "", tEsSalud = "", tFecReg = "", tCta = "", tLeyPer = "", tLeyMens = "";
+            decimal tImp = 0;
+            List<BoletaDetalle> tDet = new List<BoletaDetalle>();
 
-            // 🚀 VARIABLE PARA ALMACENAR EL IMPONIBLE TEMPORALMENTE
-            decimal tempImponible = 0;
-            List<BoletaDetalle> tempDetalles = new List<BoletaDetalle>();
-
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            var encodingLatino = Encoding.GetEncoding("Windows-1252");
             using (var stream = archivoLis.OpenReadStream())
-            using (var reader = new StreamReader(stream))
+            using (var reader = new StreamReader(stream, encodingLatino))
             {
                 string linea;
                 while ((linea = await reader.ReadLineAsync()) != null)
@@ -74,18 +72,23 @@ namespace UGEL_BoletasWeb.Services.Parser
                     var matchApellidos = RxApellidos.Match(linea);
                     if (matchApellidos.Success)
                     {
-                        if ((estadoActual == EstadoParser.LeyendoConceptos || tempDetalles.Count > 0) && !string.IsNullOrEmpty(tempDni))
+                        if ((estadoActual == EstadoParser.LeyendoConceptos || tDet.Count > 0) && !string.IsNullOrEmpty(tDni))
                         {
-                            // 🚀 PASAMOS EL tempImponible AL MÉTODO
-                            GuardarBoletaTemporal(boletasProcesadas, tempDni, tempApellidos, tempNombres, tempCargo, tempTipoPensionista, tempTipoPension, tempCuenta, mesGlobal, anioGlobal, tempImponible, tempDetalles, usuarioQueSube);
-                            tempDetalles = new List<BoletaDetalle>();
-                            tempDni = ""; tempCargo = ""; tempTipoPensionista = ""; tempTipoPension = ""; tempCuenta = "";
-                            tempImponible = 0; // Resetear
+                            GuardarBoletaTemporal(boletasProcesadas, tDni, tApe, tNom, tFecNac, tCargo, tTipoPta, tTipoPen, tNivMag, tTiemServ, tEsSalud, tFecReg, tCta, tLeyPer, tLeyMens, mesGlobal, anioGlobal, tImp, tDet, usuarioQueSube);
+                            tDet = new List<BoletaDetalle>();
+                            tApe = ""; tNom = ""; tFecNac = ""; tDni = ""; tCargo = ""; tTipoPta = ""; tTipoPen = "";
+                            tNivMag = ""; tTiemServ = ""; tEsSalud = ""; tFecReg = ""; tCta = ""; tLeyPer = ""; tLeyMens = ""; tImp = 0;
                         }
 
-                        tempApellidos = matchApellidos.Groups[1].Value.Trim();
+                        tApe = matchApellidos.Groups[1].Value.Trim();
                         estadoActual = EstadoParser.LeyendoCabecera;
                         continue;
+                    }
+
+                    var matchImponible = RxMontoImponible.Match(linea);
+                    if (matchImponible.Success)
+                    {
+                        tImp = decimal.Parse(matchImponible.Groups[1].Value.Replace(",", ""), CultureInfo.InvariantCulture);
                     }
 
                     if (RxSeparador.IsMatch(linea) && estadoActual == EstadoParser.LeyendoCabecera)
@@ -102,112 +105,55 @@ namespace UGEL_BoletasWeb.Services.Parser
 
                     if (estadoActual == EstadoParser.LeyendoCabecera)
                     {
-                        var matchNombres = RxNombres.Match(linea);
-                        if (matchNombres.Success) tempNombres = matchNombres.Groups[1].Value.Trim();
+                        var mNom = RxNombres.Match(linea); if (mNom.Success) tNom = mNom.Groups[1].Value.Trim();
+                        var mFecNac = RxFechaNac.Match(linea); if (mFecNac.Success) tFecNac = mFecNac.Groups[1].Value.Trim();
+                        var mDni = RxDni.Match(linea); if (mDni.Success) tDni = mDni.Groups[1].Value.Trim();
+                        var mCargo = RxCargo.Match(linea); if (mCargo.Success) tCargo = mCargo.Groups[1].Value.Trim();
+                        var mTipoPta = RxTipoPensionista.Match(linea); if (mTipoPta.Success) tTipoPta = mTipoPta.Groups[1].Value.Trim();
+                        var mTipoPen = RxTipoPension.Match(linea); if (mTipoPen.Success) tTipoPen = mTipoPen.Groups[1].Value.Trim();
+                        var mNivMag = RxNivelMag.Match(linea); if (mNivMag.Success) tNivMag = mNivMag.Groups[1].Value.Trim();
 
-                        var matchDni = RxDni.Match(linea);
-                        if (matchDni.Success) tempDni = matchDni.Groups[1].Value.Trim();
+                        var mTs = RxTiempoServ.Match(linea); if (mTs.Success) tTiemServ = mTs.Groups[1].Value.Trim();
+                        var mEs = RxEsSalud.Match(linea); if (mEs.Success) tEsSalud = mEs.Groups[1].Value.Trim();
 
-                        var matchCargo = RxCargo.Match(linea);
-                        if (matchCargo.Success) tempCargo = matchCargo.Groups[1].Value.Trim();
-
-                        var matchTipoPta = RxTipoPensionista.Match(linea);
-                        if (matchTipoPta.Success) tempTipoPensionista = matchTipoPta.Groups[1].Value.Trim();
-
-                        var matchTipoPen = RxTipoPension.Match(linea);
-                        if (matchTipoPen.Success) tempTipoPension = matchTipoPen.Groups[1].Value.Trim();
-
-                        var matchCuenta = RxCuenta.Match(linea);
-                        if (matchCuenta.Success) tempCuenta = matchCuenta.Groups[1].Value.Trim();
-
-                        // 🚀 EXTRACCIÓN DEL MONTO IMPONIBLE
-                        var matchImponible = RxMontoImponible.Match(linea);
-                        if (matchImponible.Success)
-                        {
-                            string valorLimpio = matchImponible.Groups[1].Value.Replace(",", "");
-                            tempImponible = decimal.Parse(valorLimpio, CultureInfo.InvariantCulture);
-                        }
+                        var mFecReg = RxFechaReg.Match(linea); if (mFecReg.Success) tFecReg = mFecReg.Groups[1].Value.Trim();
+                        var mCta = RxCuenta.Match(linea); if (mCta.Success) tCta = mCta.Groups[1].Value.Trim();
+                        var mLeyP = RxLeyendaPerm.Match(linea); if (mLeyP.Success) tLeyPer = mLeyP.Groups[1].Value.Trim();
+                        var mLeyM = RxLeyendaMens.Match(linea); if (mLeyM.Success) tLeyMens = mLeyM.Groups[1].Value.Trim();
                     }
                     else if (estadoActual == EstadoParser.LeyendoConceptos)
                     {
                         var matchesConceptos = RxConcepto.Matches(linea);
                         foreach (Match m in matchesConceptos)
                         {
-                            string signo = m.Groups[1].Value;
-                            string codigo = m.Groups[2].Value.ToUpper();
-                            decimal monto = decimal.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
-
-                            string tipo = signo == "+" ? "I" : "D";
-                            tempDetalles.Add(new BoletaDetalle(codigo, codigo, tipo, monto, usuarioQueSube));
+                            string tipo = m.Groups[1].Value == "+" ? "I" : "D";
+                            tDet.Add(new BoletaDetalle(m.Groups[2].Value.ToUpper(), m.Groups[2].Value.ToUpper(), tipo, decimal.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture), usuarioQueSube));
                         }
                     }
                 }
 
-                if (!string.IsNullOrEmpty(tempDni) && tempDetalles.Count > 0)
+                if (!string.IsNullOrEmpty(tDni) && tDet.Count > 0)
                 {
-                    // 🚀 PASAMOS EL tempImponible A LA ÚLTIMA BOLETA
-                    GuardarBoletaTemporal(boletasProcesadas, tempDni, tempApellidos, tempNombres, tempCargo, tempTipoPensionista, tempTipoPension, tempCuenta, mesGlobal, anioGlobal, tempImponible, tempDetalles, usuarioQueSube);
+                    GuardarBoletaTemporal(boletasProcesadas, tDni, tApe, tNom, tFecNac, tCargo, tTipoPta, tTipoPen, tNivMag, tTiemServ, tEsSalud, tFecReg, tCta, tLeyPer, tLeyMens, mesGlobal, anioGlobal, tImp, tDet, usuarioQueSube);
                 }
             }
 
             return boletasProcesadas;
         }
 
-        // 🚀 ACTUALIZAMOS LA FIRMA DEL MÉTODO PARA RECIBIR 'decimal imponible'
-        private void GuardarBoletaTemporal(List<BoletaCabecera> lista, string dni, string apellidos, string nombres, string cargo, string tipoPensionista, string tipoPension, string cuenta, string mes, string anio, decimal imponible, List<BoletaDetalle> detalles, string usuario)
+        private void GuardarBoletaTemporal(List<BoletaCabecera> lista, string dni, string ape, string nom, string fecNac, string cargo, string tipoPta, string tipoPen, string nivMag, string tServ, string eSalud, string fReg, string cta, string leyPer, string leyMen, string mes, string anio, decimal imp, List<BoletaDetalle> det, string usu)
         {
-            decimal totalIngresos = 0;
-            decimal totalDescuentos = 0;
+            decimal tIng = 0, tDes = 0;
+            foreach (var d in det) { if (d.TipoConcepto == "I") tIng += d.Monto; else tDes += d.Monto; }
 
-            foreach (var d in detalles)
-            {
-                if (d.TipoConcepto == "I") totalIngresos += d.Monto;
-                if (d.TipoConcepto == "D") totalDescuentos += d.Monto;
-            }
-
-            decimal montoLiquido = totalIngresos - totalDescuentos;
-
-            // 🚀 AQUÍ RESOLVEMOS EL ERROR ENVIANDO EL DATO AL CONSTRUCTOR
-            var nuevaBoleta = new BoletaCabecera(
-                dni: dni,
-                apellidos: apellidos,
-                nombres: nombres,
-                cargo: cargo,
-                tipoPensionista: tipoPensionista,
-                tipoPension: tipoPension,
-                cuentaBancaria: cuenta,
-                mes: mes,
-                anio: anio,
-                montoImponible: imponible, // <-- Este es el parámetro que faltaba
-                totalIngresos: totalIngresos,
-                totalDescuentos: totalDescuentos,
-                montoLiquido: montoLiquido,
-                usuarioCreacion: usuario
-            );
-
-            foreach (var d in detalles) nuevaBoleta.AgregarDetalle(d);
-
-            lista.Add(nuevaBoleta);
+            var nBoleta = new BoletaCabecera(dni, ape, nom, fecNac, cargo, tipoPta, tipoPen, nivMag, tServ, eSalud, fReg, cta, leyPer, leyMen, mes, anio, imp, tIng, tDes, tIng - tDes, usu);
+            foreach (var d in det) nBoleta.AgregarDetalle(d);
+            lista.Add(nBoleta);
         }
 
-        private string ConvertirMesANumero(string mesTexto)
+        private string ConvertirMesANumero(string m)
         {
-            return mesTexto.ToUpper() switch
-            {
-                "ENERO" => "01",
-                "FEBRERO" => "02",
-                "MARZO" => "03",
-                "ABRIL" => "04",
-                "MAYO" => "05",
-                "JUNIO" => "06",
-                "JULIO" => "07",
-                "AGOSTO" => "08",
-                "SETIEMBRE" => "09",
-                "OCTUBRE" => "10",
-                "NOVIEMBRE" => "11",
-                "DICIEMBRE" => "12",
-                _ => "00"
-            };
+            return m.ToUpper() switch { "ENERO" => "01", "FEBRERO" => "02", "MARZO" => "03", "ABRIL" => "04", "MAYO" => "05", "JUNIO" => "06", "JULIO" => "07", "AGOSTO" => "08", "SETIEMBRE" => "09", "OCTUBRE" => "10", "NOVIEMBRE" => "11", "DICIEMBRE" => "12", _ => "00" };
         }
     }
 }

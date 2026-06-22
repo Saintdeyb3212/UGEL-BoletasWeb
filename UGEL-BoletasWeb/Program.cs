@@ -15,6 +15,10 @@ builder.Services.AddDbContext<UgelDbContext>(options =>
 // B. Inyectar el Motor Parser ANTES del Build
 builder.Services.AddScoped<UGEL_BoletasWeb.Services.Parser.IMotorProcesadorLis, UGEL_BoletasWeb.Services.Parser.MotorProcesadorLis>();
 
+// Inyectar el Motor de Generación de PDFs
+builder.Services.AddScoped<UGEL_BoletasWeb.Services.PdfExport.IGeneradorBoletaPdf, UGEL_BoletasWeb.Services.PdfExport.GeneradorBoletaPdf>();
+
+
 // ====================================================================
 // EL PUNTO DE NO RETORNO: CONSTRUIR LA APLICACIÓN
 // ====================================================================
