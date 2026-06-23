@@ -1,6 +1,141 @@
-﻿namespace UGEL_BoletasWeb.Views.Autenticacion
-{
-    public class IniciarSesion
-    {
-    }
+﻿@model UGEL_BoletasWeb.Models.ViewModels.LoginViewModel
+@{
+    Layout = null;
 }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acceso - UGEL Concepción</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+            body {
+                background: linear-gradient(135deg, #0a4b7d 0%, #10609e 50%, #24b3f1 100%);
+                font-family: 'Inter', sans-serif;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0;
+            }
+
+            .login-card {
+                background: #ffffff;
+                border-radius: 1rem;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+                width: 100%;
+                max-width: 400px;
+                padding: 2.5rem;
+                text-align: center;
+            }
+
+            .login-icon {
+                background-color: #f1f5f9;
+                color: #0a4b7d;
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1.5rem;
+                font-size: 2.5rem;
+                box-shadow: inset 0 4px 6px rgba(0,0,0,0.05);
+            }
+
+            .form-control-premium {
+                background-color: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 0.5rem;
+                padding: 0.75rem 1rem;
+                font-weight: 500;
+            }
+
+                .form-control-premium:focus {
+                    border-color: #24b3f1;
+                    box-shadow: 0 0 0 4px rgba(36, 179, 241, 0.1);
+                    outline: none;
+                    background-color: #fff;
+                }
+
+            .btn-login {
+                background: linear-gradient(to right, #0a4b7d, #10609e);
+                color: white;
+                font-weight: 700;
+                padding: 0.75rem;
+                border-radius: 0.5rem;
+                border: none;
+                transition: all 0.3s;
+            }
+
+                .btn-login:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(10, 75, 125, 0.3);
+                    color: white;
+                }
+
+            /* 🚀 ESTILOS PARA EL ERROR NATIVO DE ASP.NET CORE */
+            .validation-summary-errors {
+                background-color: #fee2e2;
+                color: #b91c1c;
+                padding: 0.75rem;
+                border-left: 4px solid #dc2626;
+                border-radius: 0.25rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+                text-align: left;
+            }
+
+                .validation-summary-errors ul {
+                    margin-bottom: 0;
+                    padding-left: 1.5rem;
+                    list-style-type: square;
+                }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="login-icon">
+            <i class="bi bi-bank2"></i>
+        </div>
+        <h3 class="fw-bold mb-1" style="color: #0a4b7d; letter-spacing: -0.5px;">UGEL Concepción</h3>
+        <p class="text-muted mb-4" style="font-size: 0.85rem; font-weight: 500;">Sistema Digital de Planillas y Boletas</p>
+
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+        <form asp-controller="Autenticacion" asp-action="IniciarSesion" method="post" class="text-start">
+            <div class="mb-3">
+                <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Usuario</label>
+                <input asp-for="Username" class="form-control-premium w-100" placeholder="Ingrese su usuario" autocomplete="off" />
+                <span asp-validation-for="Username" class="text-danger fw-bold d-block mt-1" style="font-size: 11px;"></span>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Contraseña</label>
+                <input asp-for="Password" class="form-control-premium w-100" placeholder="••••••••" />
+                <span asp-validation-for="Password" class="text-danger fw-bold d-block mt-1" style="font-size: 11px;"></span>
+            </div>
+
+            <button type="submit" class="btn-login w-100 mb-3">
+                <i class="bi bi-box-arrow-in-right me-2"></i> INICIAR SESIÓN
+            </button>
+        </form>
+
+        <div class="text-muted mt-3" style="font-size: 0.7rem;">
+            &copy; @DateTime.Now.Year UGEL Concepción<br>
+            Acceso restringido a personal autorizado.
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+
+</body>
+</html>

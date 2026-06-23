@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace UGEL_BoletasWeb.Models.Entities
@@ -15,7 +16,6 @@ namespace UGEL_BoletasWeb.Models.Entities
         [Column(TypeName = "varchar(50)")]
         public string Username { get; private set; }
 
-        // ¡NUNCA EN TEXTO PLANO! Guardaremos el Hash en Base64
         [Required]
         [StringLength(255)]
         [Column(TypeName = "varchar(255)")]
@@ -24,39 +24,40 @@ namespace UGEL_BoletasWeb.Models.Entities
         [Required]
         [StringLength(20)]
         [Column(TypeName = "varchar(20)")]
-        public string Rol { get; private set; } // Ej: "Admin", "Pagaduria"
+        public string Rol { get; private set; }
 
+        // 🚀 DATO FALTANTE CRÍTICO: Mapeo explícito del estado de la cuenta para auditorías
         [Required]
-        [StringLength(100)]
-        [Column(TypeName = "varchar(100)")]
-        public string NombreCompleto { get; private set; }
+        public bool EstadoActivo { get; private set; } = true;
 
         protected UsuarioSistema() { }
 
-        public UsuarioSistema(string username, string passwordHash, string rol, string nombreCompleto, string usuarioCreacion)
+        public UsuarioSistema(
+            string username,
+            string passwordHash,
+            string rol,
+            string usuarioCreacion)
         {
-            ArgumentException.ThrowIfNullOrEmpty(username);
-            ArgumentException.ThrowIfNullOrEmpty(passwordHash);
-            ArgumentException.ThrowIfNullOrEmpty(rol);
+            if (string.IsNullOrWhiteSpace(username)) throw new ArgumentException("El nombre de usuario no puede estar vacío.");
+            if (string.IsNullOrWhiteSpace(passwordHash)) throw new ArgumentException("El hash de la contraseña es obligatorio.");
+            if (string.IsNullOrWhiteSpace(rol)) throw new ArgumentException("El rol del sistema es obligatorio.");
+            if (string.IsNullOrWhiteSpace(usuarioCreacion)) throw new ArgumentException("El usuario creador es obligatorio.");
 
-            Username = username;
+            Username = username.Trim();
             PasswordHash = passwordHash;
-            Rol = rol;
-            NombreCompleto = nombreCompleto ?? string.Empty;
+            Rol = rol.Trim();
+            EstadoActivo = true; // Toda cuenta nueva nace activa
 
-            InicializarAuditoria(usuarioCreacion);
+            InicializarAuditoria(usuarioCreacion.Trim());
         }
 
-        // Comportamiento del Dominio: Desactivar una cuenta sin borrarla
+        // Comportamiento de dominio: Desactivación lógica (Borrado seguro)
         public void DesactivarCuenta(string usuarioQueModifica)
         {
-            // Validamos que el sistema siempre nos obligue a decir QUIÉN hace el cambio
-            ArgumentException.ThrowIfNullOrEmpty(usuarioQueModifica, nameof(usuarioQueModifica));
+            if (string.IsNullOrWhiteSpace(usuarioQueModifica)) throw new ArgumentException("El usuario modificador es obligatorio.");
 
-            this.EstadoActivo = false;
-
-            // Usamos el nuevo método de la clase base para sellar la auditoría
-            this.RegistrarModificacion(usuarioQueModifica);
+            EstadoActivo = false;
+            RegistrarModificacion(usuarioQueModifica.Trim());
         }
     }
 }

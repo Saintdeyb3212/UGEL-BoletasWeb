@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/ConsultasReportes.css" asp-append-version="true" />
-
 </head>
 <body>
     <div class="app-layout">
@@ -29,10 +28,13 @@
                     <span>Consulta de Boletas</span>
                 </a>
 
-                <a asp-controller="Administrador" asp-action="SubirArchivoLis" class="nav-item">
-                    <i class="bi bi-cloud-arrow-up-fill nav-icon"></i>
-                    <span>Carga de Planillas</span>
-                </a>
+                @if (User.IsInRole("Administrador"))
+                {
+                    <a asp-controller="Administrador" asp-action="Ajustes" class="nav-item">
+                        <i class="bi bi-gear-fill nav-icon"></i>
+                        <span>Ajustes Generales</span>
+                    </a>
+                }
             </nav>
 
             <div class="sidebar-footer">

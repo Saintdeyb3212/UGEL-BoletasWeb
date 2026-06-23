@@ -4,7 +4,6 @@
 }
 
 <div class="reportes-card mb-3">
-
     <div class="reportes-header">
         <h2 class="reportes-title">
             <i class="bi bi-file-earmark-text me-2"></i> Búsqueda de Planillas
@@ -12,7 +11,10 @@
     </div>
 
     <div class="p-3 bg-white">
-        <form asp-controller="Pagaduria" asp-action="Consultar" method="post">
+        <form asp-controller="Pagaduria" asp-action="ProcesarConsulta" method="post">
+
+            @Html.AntiForgeryToken()
+
             <div class="row g-2">
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <div class="form-group-premium">
@@ -70,16 +72,15 @@
     </div>
 }
 
-@if (Model.Resultados != null && Model.Resultados.Any())
+@if (Model != null && Model.Resultados != null && Model.Resultados.Any())
 {
     @foreach (var boleta in Model.Resultados)
     {
         <div class="reportes-card mb-4">
-
             <div class="reportes-header py-2 px-3 bg-light border-bottom">
                 <div class="d-flex align-items-center">
                     <div class="bg-primary text-white rounded px-2 py-1 me-3 fw-bold shadow-sm" style="font-size: 0.8rem;">@boleta.Mes - @boleta.Anio</div>
-                    <h6 class="mb-0 fw-bold text-uppercase text-white">@boleta.Apellidos, @boleta.Nombres</h6>
+                    <h6 class="mb-0 fw-bold text-uppercase text-dark">@boleta.Apellidos, @boleta.Nombres</h6>
                 </div>
                 <a asp-controller="Pagaduria" asp-action="DescargarBoletaPdf" asp-route-id="@boleta.Id" class="btn-export" target="_blank">
                     <i class="bi bi-file-earmark-pdf-fill"></i> EXPORTAR
@@ -87,7 +88,6 @@
             </div>
 
             <div class="p-3">
-
                 <table class="tabla-cabecera-datos">
                     <tbody>
                         <tr>
@@ -122,11 +122,11 @@
                         </tr>
                         <tr>
                             <td class="lbl-celda">Leyenda Perm.</td>
-                            <td colspan="3" class="val-celda">@(!string.IsNullOrEmpty(boleta.LeyendaPermanente) ? boleta.LeyendaPermanente : "-")</td>
+                            <td colspan="3" class="val-celda text-wrap">@(!string.IsNullOrEmpty(boleta.LeyendaPermanente) ? boleta.LeyendaPermanente : "-")</td>
                         </tr>
                         <tr>
                             <td class="lbl-celda">Leyenda Mensual</td>
-                            <td colspan="3" class="val-celda">@(!string.IsNullOrEmpty(boleta.LeyendaMensual) ? boleta.LeyendaMensual : "-")</td>
+                            <td colspan="3" class="val-celda text-wrap">@(!string.IsNullOrEmpty(boleta.LeyendaMensual) ? boleta.LeyendaMensual : "-")</td>
                         </tr>
                     </tbody>
                 </table>
@@ -151,7 +151,6 @@
                                 }
                                 else
                                 {
-
                                     <div class="text-muted text-center p-1" style="font-size: 0.8rem;">No registra</div>
                                 }
                             </div>
@@ -177,7 +176,6 @@
                                 }
                                 else
                                 {
-
                                     <div class="text-muted text-center p-1" style="font-size: 0.8rem;">No registra</div>
                                 }
                             </div>
@@ -215,4 +213,4 @@
             </div>
         </div>
     }
-}   
+}

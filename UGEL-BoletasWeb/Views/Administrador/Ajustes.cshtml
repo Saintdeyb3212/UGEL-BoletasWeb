@@ -1,0 +1,208 @@
+﻿@{
+    ViewData["Title"] = "Panel de Ajustes e Importación";
+}
+<link rel="stylesheet" href="~/css/AjustesGenerales.css" asp-append-version="true" />
+
+<div class="row g-3">
+
+    <div class="col-xl-5 col-lg-6">
+        <div class="ajustes-wrapper">
+            <div class="ajustes-header-bar">
+                <h4><i class="bi bi-people-fill me-2"></i> Gestión de Usuarios</h4>
+            </div>
+            <div class="p-3 bg-white">
+
+                @if (TempData["ErrorUser"] != null)
+                {
+                    <div class="alert alert-danger py-1.5 px-3 rounded-1 mb-2" style="font-size: 11px; font-weight: 600;">
+                        <i class="bi bi-x-circle-fill"></i> @TempData["ErrorUser"]
+                    </div>
+                }
+                @if (TempData["ExitoUser"] != null)
+                {
+                    <div class="alert alert-success py-1.5 px-3 rounded-1 mb-2" style="font-size: 11px; font-weight: 600;">
+                        <i class="bi bi-check-circle-fill"></i> @TempData["ExitoUser"]
+                    </div>
+                }
+
+                <form asp-action="CrearUsuario" method="post" class="row g-2 mb-3 align-items-end pb-3 border-bottom">
+                    <div class="col-12">
+                        <label class="form-label-premium" style="font-size: 11px; font-weight:700; margin-bottom: 2px;">Usuario de Acceso</label>
+                        <input name="username" class="form-control form-control-sm rounded-1" style="height:32px;" Rar required placeholder="ej. mconcepcion" autocomplete="off" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-premium" style="font-size: 11px; font-weight:700; margin-bottom: 2px;">Contraseña</label>
+                        <input name="password" type="password" class="form-control form-control-sm rounded-1" style="height:32px;" required placeholder="••••••••" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label-premium" style="font-size: 11px; font-weight:700; margin-bottom: 2px;">Rol Oficial</label>
+                        <select name="rol" class="form-select form-select-sm rounded-1" style="height:32px;" required>
+                            <option value="Pagaduria">Pagaduría (Consultas)</option>
+                            <option value="Administrador">Administrador (Total)</option>
+                        </select>
+                    </div>
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold" style="background-color: var(--ugel-azul); border:none; height: 32px;">
+                            <i class="bi bi-person-plus-fill"></i> Registrar Usuario
+                        </button>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Estado</th>
+                                <th>Rol Oficial</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in ViewBag.Usuarios)
+                            {
+                                <tr>
+                                    <td class="fw-bold font-monospace text-dark">@user.Username</td>
+                                    <td>
+                                        <span class="badge @(user.EstadoActivo ? "bg-success" : "bg-danger")" style="font-size: 9px; padding: 3px 6px;">
+                                            @(user.EstadoActivo ? "Activo" : "Inactivo")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(user.Rol == "Administrador" ? "bg-dark" : "bg-secondary")" style="font-size: 10px;">@user.Rol</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <form asp-action="EliminarUsuario" asp-route-id="@user.Id" method="post" onsubmit="return confirm('¿Seguro de remover el acceso a este operador?');">
+                                            <button type="submit" class="btn btn-link text-danger p-0 border-0"><i class="bi bi-trash3-fill"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-7 col-lg-6">
+        <div class="ajustes-wrapper">
+            <div class="ajustes-header-bar">
+                <h4><i class="bi bi-cloud-arrow-up-fill me-2"></i> Motor de Carga Secuencial (.LIS)</h4>
+            </div>
+            <div class="p-3 bg-white">
+
+                <div class="drop-zone-multiple" id="zonaCarga">
+                    <i class="bi bi-file-earmark-zip text-primary opacity-50" style="font-size: 2.5rem;"></i>
+                    <h6 class="fw-bold text-dark mt-2">Seleccione Lote de Archivos Mensuales</h6>
+                    <p class="text-muted small mb-2">Permitido de 1 a 10 archivos simultáneos</p>
+                    <input type="file" id="inputArchivos" multiple accept=".lis" style="display: none;" />
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="document.getElementById('inputArchivos').click()">
+                        <i class="bi bi-folder2-open"></i> Explorar Archivos
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-status-lis table-bordered" id="tablaCola">
+                        <thead>
+                            <tr>
+                                <th style="width: 55%;">Nombre del Archivo</th>
+                                <th style="width: 20%; text-align: center;">Tamaño</th>
+                                <th style="width: 25%; text-align: center;">Estado Operativo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoCola">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">Ningún archivo en cola de procesamiento.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-success btn-sm w-100 fw-bold" id="btnIniciarProcesamiento" disabled onclick="iniciarColaAsincrona()">
+                        <i class="bi bi-play-circle-fill"></i> Iniciar Integración Atómica
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let listaArchivosGlobal = [];
+
+    document.getElementById('inputArchivos').addEventListener('change', function(e) {
+        var archivos = e.target.files;
+        if(archivos.length > 10) {
+            alert('Alerta: El límite máximo de procesamiento simultáneo es de 10 archivos LIS.');
+            this.value = '';
+            return;
+        }
+
+        listaArchivosGlobal = Array.from(archivos);
+        var cuerpo = document.getElementById('cuerpoCola');
+        cuerpo.innerHTML = '';
+
+        if(listaArchivosGlobal.length === 0) {
+            cuerpo.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Ningún archivo en cola.</td></tr>';
+            document.getElementById('btnIniciarProcesamiento').disabled = true;
+            return;
+        }
+
+        listaArchivosGlobal.forEach((file, index) => {
+            var kb = (file.size / 1024).toFixed(1) + ' KB';
+            var fila = `<tr id="fila_${index}">
+                <td class="font-monospace text-dark fw-medium">${file.name}</td>
+                <td class="text-center text-secondary">${kb}</td>
+                <td class="text-center estado-espera" id="estado_${index}"><i class="bi bi-hourglass-split"></i> En espera</td>
+            </tr>`;
+            cuerpo.innerHTML += fila;
+        });
+
+        document.getElementById('btnIniciarProcesamiento').disabled = false;
+    });
+
+    async function iniciarColaAsincrona() {
+        document.getElementById('btnIniciarProcesamiento').disabled = true;
+        document.getElementById('inputArchivos').disabled = true;
+
+        for (let i = 0; i < listaArchivosGlobal.length; i++) {
+            var elEstado = document.getElementById(`estado_${i}`);
+            var elFila = document.getElementById(`fila_${i}`);
+
+            elEstado.className = "text-center estado-progreso text-primary";
+            elEstado.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Procesando...`;
+
+            var formData = new FormData();
+            formData.append("archivoLis", listaArchivosGlobal[i]);
+
+            try {
+                var response = await fetch('/Administrador/ProcesarArchivoLisSingle', {
+                    method: 'POST',
+                    body: formData
+                });
+                var resultado = await response.json();
+
+                if (resultado.success) {
+                    elEstado.className = "text-center estado-exito text-success";
+                    elEstado.innerHTML = `<i class="bi bi-check-circle-fill"></i> Integrado`;
+                } else {
+                    elFila.className = "fila-error-red";
+                    elEstado.className = "text-center estado-error text-danger";
+                    elEstado.innerHTML = `<i class="bi bi-x-circle-fill"></i> Error`;
+                    alert(`Integración abortada en el archivo: ${listaArchivosGlobal[i].name}.\nMotivo: ${resultado.message}`);
+                    break;
+                }
+            } catch (err) {
+                elFila.className = "fila-error-red";
+                elEstado.className = "text-center estado-error text-danger";
+                elEstado.innerHTML = `<i class="bi bi-exclamation-octagon-fill"></i> Fallo de Red`;
+                break;
+            }
+        }
+
+        document.getElementById('inputArchivos').disabled = false;
+    }
+</script>

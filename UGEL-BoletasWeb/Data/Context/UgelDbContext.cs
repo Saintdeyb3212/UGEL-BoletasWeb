@@ -12,9 +12,9 @@ namespace UGEL_BoletasWeb.Data.Context
         }
 
         // 1. Declaración de las Tablas (DbSets)
-        public DbSet<UsuarioSistema> Usuarios { get; set; }
         public DbSet<BoletaCabecera> BoletasCabecera { get; set; }
         public DbSet<BoletaDetalle> BoletasDetalle { get; set; }
+        public DbSet<UsuarioSistema> UsuariosSistema { get; set; }
 
         // 2. Configuración Avanzada (Fluent API) para blindar la base de datos
         protected override void OnModelCreating(ModelBuilder modelBuilder)
