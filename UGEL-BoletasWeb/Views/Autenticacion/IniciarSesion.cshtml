@@ -34,18 +34,20 @@
             }
 
             .login-icon {
-                background-color: #f1f5f9;
-                color: #0a4b7d;
-                width: 80px;
-                height: 80px;
-                border-radius: 50%;
+                width: 90px;
+                height: 90px;
+                margin: 0 auto 1.25rem;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin: 0 auto 1.5rem;
-                font-size: 2.5rem;
-                box-shadow: inset 0 4px 6px rgba(0,0,0,0.05);
             }
+
+                .login-icon img {
+                    max-width: 100%;
+                    max-height: 100%;
+                    object-fit: contain;
+                    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+                }
 
             .form-control-premium {
                 background-color: #f8fafc;
@@ -102,10 +104,10 @@
 
     <div class="login-card">
         <div class="login-icon">
-            <i class="bi bi-bank2"></i>
+            <img src="~/img/logo-ugel.png" alt="Escudo Institucional UGEL" />
         </div>
         <h3 class="fw-bold mb-1" style="color: #0a4b7d; letter-spacing: -0.5px;">UGEL Concepción</h3>
-        <p class="text-muted mb-4" style="font-size: 0.85rem; font-weight: 500;">Sistema Digital de Planillas y Boletas</p>
+        <p class="text-muted mb-4" style="font-size: 0.85rem; font-weight: 500;">Sistema digital de Boletas</p>
 
         <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
 
@@ -118,7 +120,7 @@
 
             <div class="mb-4">
                 <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Contraseña</label>
-                <input asp-for="Password" class="form-control-premium w-100" placeholder="••••••••" />
+                <input asp-for="Password" class="form-control-premium w-100" placeholder="••••••••" autocomplete="off" />
                 <span asp-validation-for="Password" class="text-danger fw-bold d-block mt-1" style="font-size: 11px;"></span>
             </div>
 

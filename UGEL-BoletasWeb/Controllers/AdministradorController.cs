@@ -26,6 +26,61 @@ namespace UGEL_BoletasWeb.Controllers
             _motorParser = motorParser;
         }
 
+        // ======================================================================
+        // MOTOR DE RESPALDO ATÓMICO (SQL SERVER .BAK)
+        // ======================================================================
+        // ======================================================================
+        // MOTOR DE RESPALDO ATÓMICO (SQL SERVER .BAK) - FIX PERMISOS
+        // ======================================================================
+        [HttpGet]
+        public async Task<IActionResult> DescargarBackupBaseDatos()
+        {
+            string connectionString = _context.Database.GetConnectionString() ?? "";
+            var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
+            string nombreBaseDatos = builder.InitialCatalog;
+
+            if (string.IsNullOrEmpty(nombreBaseDatos))
+            {
+                return BadRequest("No se pudo identificar el catálogo inicial de la base de datos.");
+            }
+
+            // 🚀 FIX DE INFRAESTRUCTURA: Usamos la carpeta Pública de Windows. 
+            // SQL Server (como servicio) SIEMPRE tiene permiso de escribir aquí.
+            string directorioPublico = @"C:\Users\Public\Documents\UGEL_Backups";
+
+            // Creamos la carpeta si no existe
+            if (!System.IO.Directory.Exists(directorioPublico))
+            {
+                System.IO.Directory.CreateDirectory(directorioPublico);
+            }
+
+            string nombreArchivoBak = $"{nombreBaseDatos}_Backup_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
+            string rutaFisicaCompleta = System.IO.Path.Combine(directorioPublico, nombreArchivoBak);
+
+            try
+            {
+                // Ordenamos a SQL Server crear el backup en la zona pública
+                FormattableString queryBackup = $"BACKUP DATABASE {nombreBaseDatos} TO DISK = {rutaFisicaCompleta} WITH FORMAT, MEDIANAME = 'UGEL_Backup', NAME = 'Full Backup of UGEL Boletas';";
+
+                await _context.Database.ExecuteSqlInterpolatedAsync(queryBackup);
+
+                // Leemos el archivo que SQL Server nos acaba de dejar
+                byte[] bytesArchivo = await System.IO.File.ReadAllBytesAsync(rutaFisicaCompleta);
+
+                // Borramos la evidencia para no ocupar disco duro
+                if (System.IO.File.Exists(rutaFisicaCompleta))
+                {
+                    System.IO.File.Delete(rutaFisicaCompleta);
+                }
+
+                return File(bytesArchivo, "application/octet-stream", nombreArchivoBak);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error de permisos o motor SQL: {ex.Message}");
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> Ajustes()
         {
@@ -35,15 +90,29 @@ namespace UGEL_BoletasWeb.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(104857600)] // Permite recibir archivos LIS de hasta 100 MB sin colapsar
         public async Task<IActionResult> ProcesarArchivoLisSingle(IFormFile archivoLis)
         {
             if (archivoLis == null || archivoLis.Length == 0)
                 return Json(new { success = false, message = "El archivo se encuentra vacío o corrupto." });
 
+            // 🚀 FIX MEMORY LEAK: Copiamos el archivo HTTP a la memoria RAM de forma segura y liberamos la red
+            using var memoryStream = new System.IO.MemoryStream();
+            await archivoLis.CopyToAsync(memoryStream);
+            memoryStream.Position = 0; // Regresamos el cursor al inicio para leer
+
+            // Creamos un FormFile "Falso" de memoria para dárselo a tu parser de forma segura
+            var archivoSeguro = new FormFile(memoryStream, 0, memoryStream.Length, "archivoLis", archivoLis.FileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = archivoLis.ContentType
+            };
+
             using var transaccion = await _context.Database.BeginTransactionAsync();
             try
             {
-                var boletasExtraidas = await _motorParser.ProcesarArchivoAsync(archivoLis, "AdminSistema");
+                var boletasExtraidas = await _motorParser.ProcesarArchivoAsync(archivoSeguro, User.Identity?.Name ?? "Sistema");
 
                 if (!boletasExtraidas.Any())
                 {
@@ -128,6 +197,13 @@ namespace UGEL_BoletasWeb.Controllers
             var user = await _context.UsuariosSistema.FindAsync(id);
             if (user != null)
             {
+                // 🚀 BUG 3 RESUELTO: Escudo anti-suicidio de sistema. No puede borrarse a sí mismo.
+                if (user.Username.Equals(User.Identity?.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    TempData["ErrorUser"] = "ALERTA CRÍTICA: No puede eliminar la cuenta con la que está actualmente conectado.";
+                    return RedirectToAction(nameof(Ajustes));
+                }
+
                 _context.UsuariosSistema.Remove(user);
                 await _context.SaveChangesAsync();
                 TempData["ExitoUser"] = "Usuario eliminado del sistema.";

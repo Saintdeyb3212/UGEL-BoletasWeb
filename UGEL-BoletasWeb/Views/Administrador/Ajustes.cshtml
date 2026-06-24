@@ -95,7 +95,7 @@
                 <div class="drop-zone-multiple" id="zonaCarga">
                     <i class="bi bi-file-earmark-zip text-primary opacity-50" style="font-size: 2.5rem;"></i>
                     <h6 class="fw-bold text-dark mt-2">Seleccione Lote de Archivos Mensuales</h6>
-                    <p class="text-muted small mb-2">Permitido de 1 a 10 archivos simultáneos</p>
+                    <p class="text-muted small mb-2">Permitido de 1 a 12 archivos simultáneos</p>
                     <input type="file" id="inputArchivos" multiple accept=".lis" style="display: none;" />
                     <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="document.getElementById('inputArchivos').click()">
                         <i class="bi bi-folder2-open"></i> Explorar Archivos
@@ -130,13 +130,46 @@
     </div>
 </div>
 
+<div class="col-12 mt-3">
+    <div class="ajustes-wrapper">
+        <div class="ajustes-header-bar" style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%);">
+            <h4><i class="bi bi-shield-lock-fill me-2"></i> Mantenimiento de Infraestructura</h4>
+        </div>
+        <div class="p-4 bg-white">
+            <div class="row justify-content-center">
+
+                <div class="col-xl-8 col-lg-10">
+                    <div class="card p-4 border rounded shadow-sm" style="background-color: #f8fafc; border-color: #e2e8f0 !important;">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 45px; height: 45px;">
+                                <i class="bi bi-database-fill-down fs-5"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold text-dark mb-1" style="font-size: 15px;">Copia de Seguridad de Base de Datos</h5>
+                                <p class="text-muted small mb-0">Descarga un archivo binario oficial (.BAK) desde SQL Server con toda la estructura de planillas vigente.</p>
+                            </div>
+                        </div>
+
+                        <a asp-action="DescargarBackupBaseDatos" class="btn btn-success fw-bold w-100 shadow-sm" style="background-color: #10b981; border:none; padding: 10px;">
+                            <i class="bi bi-cloud-arrow-down-fill me-2"></i> INICIAR DESCARGA DEL RESPALDO (.BAK)
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     let listaArchivosGlobal = [];
 
     document.getElementById('inputArchivos').addEventListener('change', function(e) {
         var archivos = e.target.files;
-        if(archivos.length > 10) {
-            alert('Alerta: El límite máximo de procesamiento simultáneo es de 10 archivos LIS.');
+
+        // 🚀 FIX: Aumentamos el límite a 12 archivos (Año completo)
+        if(archivos.length > 12) {
+            alert('Alerta: El límite máximo de procesamiento simultáneo es de 12 archivos LIS (Un año completo).');
             this.value = '';
             return;
         }
@@ -177,6 +210,9 @@
 
             var formData = new FormData();
             formData.append("archivoLis", listaArchivosGlobal[i]);
+
+            var securityToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            formData.append("__RequestVerificationToken", securityToken);
 
             try {
                 var response = await fetch('/Administrador/ProcesarArchivoLisSingle', {

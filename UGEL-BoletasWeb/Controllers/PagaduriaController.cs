@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using System.Linq;
 using System.Threading.Tasks;
 using UGEL_BoletasWeb.Data.Context;
@@ -10,7 +9,6 @@ using UGEL_BoletasWeb.Services.PdfExport;
 
 namespace UGEL_BoletasWeb.Controllers
 {
-    // 🚀 REGLA DE DOMINIO EN INTERFAZ: Ambos roles tienen autorización estricta para consultar boletas
     [Authorize(Roles = "Administrador,Pagaduria")]
     public class PagaduriaController : Controller
     {
@@ -24,83 +22,51 @@ namespace UGEL_BoletasWeb.Controllers
         }
 
         // ====================================================================
-        // 1. MÉTODO GET (Renderizado seguro y limpio contra F5)
+        // 1. MOTOR DE BÚSQUEDA GET (Blindado, sin límites de memoria)
         // ====================================================================
         [HttpGet]
-        public IActionResult Consultar()
+        public async Task<IActionResult> Consultar(FiltroConsultaViewModel filtro)
         {
-            var modelo = new FiltroConsultaViewModel();
-
-            // Patrón PRG: Recuperamos los resultados desde TempData si existen
-            if (TempData["ResultadosBusqueda"] != null)
+            // 🚀 BLINDAJE 1: Limpieza absoluta si la petición GET viene vacía o incompleta
+            if (string.IsNullOrWhiteSpace(filtro.DNI) || string.IsNullOrWhiteSpace(filtro.Anio))
             {
-                try
-                {
-                    modelo = JsonConvert.DeserializeObject<FiltroConsultaViewModel>(TempData["ResultadosBusqueda"]!.ToString()!);
-                }
-                catch (System.Exception)
-                {
-                    modelo = new FiltroConsultaViewModel();
-                }
-
-                if (modelo!.Resultados == null || !modelo.Resultados.Any())
-                {
-                    ViewBag.MensajeAviso = $"No se encontraron boletas registradas para el DNI {modelo.DNI} en el periodo solicitado.";
-                }
-            }
-
-            return View(modelo);
-        }
-
-        // ====================================================================
-        // 2. MÉTODO POST (Procesamiento atómico, redirección obligatoria)
-        // ====================================================================
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ProcesarConsulta(FiltroConsultaViewModel filtro) // 🚀 Asegúrate de que tenga 1 sola 's'
-        {
-            // Evitamos excepciones de referencia nula (NullReferenceException)
-            if (filtro == null || string.IsNullOrEmpty(filtro.DNI) || string.IsNullOrEmpty(filtro.Anio))
-            {
-                return RedirectToAction(nameof(Consultar));
+                // Limpia la pantalla para que el F5 o el botón "Limpiar" no arrastre basura
+                ModelState.Clear();
+                return View(new FiltroConsultaViewModel());
             }
 
             try
             {
-                // Query optimizado con Eager Loading para los conceptos financieros
                 var query = _context.BoletasCabecera
                     .Include(b => b.Detalles)
                     .Where(b => b.DNI == filtro.DNI.Trim() && b.Anio == filtro.Anio.Trim());
 
-                if (!string.IsNullOrEmpty(filtro.Mes))
+                if (!string.IsNullOrWhiteSpace(filtro.Mes))
                 {
-                    query = query.Where(b => b.Mes == filtro.Mes);
+                    query = query.Where(b => b.Mes == filtro.Mes.Trim());
                 }
 
-                var boletasEncontradas = await query
+                // 🚀 BLINDAJE 2: Escudo Anti-RAM (Take 50). Evita que un DNI corrupto sature el servidor.
+                filtro.Resultados = await query
                     .OrderByDescending(b => b.Mes)
+                    .Take(50)
                     .ToListAsync();
 
-                filtro.Resultados = boletasEncontradas;
-
-                // Serializamos de forma segura previniendo ciclos infinitos en Entity Framework
-                TempData["ResultadosBusqueda"] = JsonConvert.SerializeObject(filtro, new JsonSerializerSettings
+                if (!filtro.Resultados.Any())
                 {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                });
+                    ViewBag.MensajeAviso = $"No se encontraron boletas registradas para el DNI {filtro.DNI} en el periodo solicitado.";
+                }
             }
             catch (System.Exception)
             {
-                // Si la base de datos falla, enviamos un modelo limpio para que el summary lo maneje en la UI
-                TempData["ResultadosBusqueda"] = JsonConvert.SerializeObject(new FiltroConsultaViewModel { DNI = filtro.DNI, Anio = filtro.Anio });
+                ViewBag.MensajeAviso = "Alerta: No se pudo conectar a la Base de Datos. Notifique a soporte técnico.";
             }
 
-            // Saltamos al GET para limpiar el pipeline de la petición HTTP
-            return RedirectToAction(nameof(Consultar));
+            return View(filtro);
         }
 
         // ====================================================================
-        // 3. EXPORTACIÓN EN TIEMPO REAL A HOJA A4
+        // 2. EXPORTACIÓN A PDF
         // ====================================================================
         [HttpGet]
         public async Task<IActionResult> DescargarBoletaPdf(int id)
