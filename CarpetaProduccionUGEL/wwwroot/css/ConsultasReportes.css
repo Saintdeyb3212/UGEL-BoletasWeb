@@ -1,0 +1,196 @@
+﻿/* ==========================================================================
+   wwwroot/css/ConsultasReportes.css (MÓDULO PAGADURÍA - ALTA DENSIDAD)
+   ========================================================================== */
+
+/* 1. REDUCCIÓN DE MÁRGENES (Aprovechamiento máximo de pantalla) */
+.reportes-card {
+    background-color: #ffffff;
+    border-radius: 0.5rem; /* Bordes más rectos, estilo corporativo */
+    box-shadow: 0 4px 10px rgba(10, 75, 125, 0.08);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem; /* FIX: Reducido de 2rem a 1rem para pegar los bloques */
+    overflow: hidden;
+}
+
+/* Cabecera más delgada */
+.reportes-header {
+    padding: 0.75rem 1.5rem; /* FIX: Padding reducido a la mitad */
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-med) 100%);
+    border-bottom: 3px solid var(--primary-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.reportes-title {
+    font-size: 1.25rem; /* FIX: Letra un poco más pequeña */
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+/* 2. BUSCADOR COMPACTO (Alineación perfecta con Flexbox) */
+.form-group-premium {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.form-label-premium {
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.75rem; /* Letra pequeña de oficinista */
+    margin-bottom: 0.25rem; /* Pegado al input */
+    display: block;
+}
+
+.form-control-premium {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.25rem;
+    padding: 0.35rem 0.75rem;
+    color: #1e293b;
+    font-weight: 500;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    height: 36px; /* 🚀 FIX: Forzamos 36px en vez de 42px para ahorrar espacio */
+    width: 100%;
+}
+
+    .form-control-premium:focus {
+        background-color: #fff;
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(36, 179, 241, 0.15);
+        outline: none;
+    }
+
+/* Botones Compactos */
+.btn-search, .btn-clear, .btn-export {
+    height: 36px; /* 🚀 FIX: Igualados a 36px */
+    padding: 0 1.25rem;
+    font-weight: 700;
+    border-radius: 0.25rem;
+    border: none;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.btn-search {
+    background-color: var(--primary-dark);
+    color: white;
+    width: 100%;
+}
+
+    .btn-search:hover {
+        background-color: var(--primary-med);
+        transform: translateY(-1px);
+        color: white;
+    }
+
+.btn-clear {
+    background-color: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    width: 100%;
+}
+
+    .btn-clear:hover {
+        background-color: #e2e8f0;
+        color: #334155;
+    }
+
+.btn-export {
+    background-color: var(--success-green);
+    color: white;
+    gap: 0.5rem;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+}
+
+    .btn-export:hover {
+        background-color: var(--success-hover);
+        transform: translateY(-1px);
+        color: white;
+    }
+
+/* 3. MAGIA ANTI-SCROLL (Dividir listas largas) */
+.multi-column-list {
+    column-count: 1;
+    column-gap: 1.5rem;
+    column-rule: 1px solid #f1f5f9;
+}
+
+@media (min-width: 1200px) {
+    .multi-column-list {
+        column-count: 2; /* 🚀 FIX: Se divide en 2 solo en monitores grandes */
+    }
+}
+
+.item-concepto {
+    break-inside: avoid-column;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border-bottom: 1px dashed #e2e8f0;
+    font-size: 0.8rem; /* Reducido para mostrar más items */
+}
+
+/* 4. CABECERA DE BOLETA (Alto Contraste y Matriz Tabular) */
+.tabla-cabecera-datos {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem; /* Tamaño compacto */
+    margin-bottom: 1rem;
+    border: 1px solid #cbd5e1;
+}
+
+    .tabla-cabecera-datos td {
+        padding: 0.35rem 0.5rem;
+        border: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+
+/* Celda Etiqueta: Fondo gris para contraste */
+.lbl-celda {
+    background-color: #f1f5f9;
+    color: #475569;
+    font-weight: 700;
+    width: 15%;
+    white-space: nowrap;
+}
+
+/* Celda Valor: Fondo blanco */
+.val-celda {
+    background-color: #ffffff;
+    color: #0f172a;
+    font-weight: 600;
+    width: 35%;
+}
+
+/* Clases extra de resguardo por compatibilidad (Si se usan div en vez de tabla) */
+.header-datos-box {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.lbl-dato {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+}
+
+.val-dato {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-left: 0.25rem;
+}

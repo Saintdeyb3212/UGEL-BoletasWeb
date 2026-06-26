@@ -23,11 +23,13 @@ namespace UGEL_BoletasWeb.Services.Parser
         private static readonly Regex RxApellidos = new Regex(@"Apellidos\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxNombres = new Regex(@"Nombres\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxFechaNac = new Regex(@"Fecha de Nacimiento\s*:\s*(.+)", RegexOptions.Compiled);
-        private static readonly Regex RxDni = new Regex(@"Identidad.*?(?<!\d)(\d{8})(?!\d)", RegexOptions.Compiled);
+
+        // 🛡️ BLINDAJE 1: Ampliado de 7 a 15 dígitos (Soporta DNI, Libretas Electorales, RUC y Carnet de Extranjería)
+        private static readonly Regex RxDni = new Regex(@"Identidad.*?(?<!\d)(\d{7,15})(?!\d)", RegexOptions.Compiled);
         private static readonly Regex RxCargo = new Regex(@"Cargo\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxTipoPensionista = new Regex(@"Tipo de Pensionista\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxTipoPension = new Regex(@"Tipo de Pension\s*:\s*(.+)", RegexOptions.Compiled);
-        private static readonly Regex RxNivelMag = new Regex(@"Niv\.Mag\./G\.Ocup\./Horas/HrsAdd\s*:\s*(.+)", RegexOptions.Compiled);
+        private static readonly Regex RxNivelMag = new Regex(@"Niv\.Mag\..*?:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxTiempoServ = new Regex(@"Tiempo de Servicio.*?:\s*([0-9-]+)", RegexOptions.Compiled);
         private static readonly Regex RxEsSalud = new Regex(@"ESSALUD\s*:\s*(.+)", RegexOptions.Compiled);
         private static readonly Regex RxFechaReg = new Regex(@"Fecha de Registro\s*:\s*(.+)", RegexOptions.Compiled);
@@ -36,8 +38,12 @@ namespace UGEL_BoletasWeb.Services.Parser
         private static readonly Regex RxLeyendaMens = new Regex(@"Leyenda Mensual\s*:\s*(.*)", RegexOptions.Compiled);
 
         private static readonly Regex RxSeparador = new Regex(@"={10,}", RegexOptions.Compiled);
-        private static readonly Regex RxMontoImponible = new Regex(@"M\.?Imponible\s*:?\s*([\d,]+\.\d{2})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex RxConcepto = new Regex(@"(?<=^|\s)([+-])([a-zA-Z0-9_.-]+)\s+(\d+\.\d{2})", RegexOptions.Compiled);
+
+        // 🛡️ BLINDAJE 2: (?:\.\d{1,2})? hace que los céntimos sean OPCIONALES. Si dice 1,500 o 1,500.5, lo lee perfecto.
+        private static readonly Regex RxMontoImponible = new Regex(@"M\.?Imponible\s*:?\s*([\d,]+(?:\.\d{1,2})?)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        // 🛡️ BLINDAJE 3: [^\s]+ significa "Cualquier texto que no sea un espacio". Esto captura TODO tipo de código sin importar si trae slash, asteriscos o paréntesis.
+        private static readonly Regex RxConcepto = new Regex(@"(?<=^|\s)([+-])([^\s]+)\s+([\d,]+(?:\.\d{1,2})?)", RegexOptions.Compiled);
 
         public async Task<List<BoletaCabecera>> ProcesarArchivoAsync(IFormFile archivoLis, string usuarioQueSube)
         {
@@ -45,7 +51,6 @@ namespace UGEL_BoletasWeb.Services.Parser
             EstadoParser estadoActual = EstadoParser.BuscandoCabecera;
             string mesGlobal = "01", anioGlobal = DateTime.Now.Year.ToString();
 
-            // Variables temporales completas
             string tApe = "", tNom = "", tFecNac = "", tDni = "", tCargo = "", tTipoPta = "", tTipoPen = "";
             string tNivMag = "", tTiemServ = "", tEsSalud = "", tFecReg = "", tCta = "", tLeyPer = "", tLeyMens = "";
             decimal tImp = 0;
@@ -53,6 +58,7 @@ namespace UGEL_BoletasWeb.Services.Parser
 
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             var encodingLatino = Encoding.GetEncoding("Windows-1252");
+
             using (var stream = archivoLis.OpenReadStream())
             using (var reader = new StreamReader(stream, encodingLatino))
             {
@@ -112,10 +118,8 @@ namespace UGEL_BoletasWeb.Services.Parser
                         var mTipoPta = RxTipoPensionista.Match(linea); if (mTipoPta.Success) tTipoPta = mTipoPta.Groups[1].Value.Trim();
                         var mTipoPen = RxTipoPension.Match(linea); if (mTipoPen.Success) tTipoPen = mTipoPen.Groups[1].Value.Trim();
                         var mNivMag = RxNivelMag.Match(linea); if (mNivMag.Success) tNivMag = mNivMag.Groups[1].Value.Trim();
-
                         var mTs = RxTiempoServ.Match(linea); if (mTs.Success) tTiemServ = mTs.Groups[1].Value.Trim();
                         var mEs = RxEsSalud.Match(linea); if (mEs.Success) tEsSalud = mEs.Groups[1].Value.Trim();
-
                         var mFecReg = RxFechaReg.Match(linea); if (mFecReg.Success) tFecReg = mFecReg.Groups[1].Value.Trim();
                         var mCta = RxCuenta.Match(linea); if (mCta.Success) tCta = mCta.Groups[1].Value.Trim();
                         var mLeyP = RxLeyendaPerm.Match(linea); if (mLeyP.Success) tLeyPer = mLeyP.Groups[1].Value.Trim();
@@ -127,11 +131,13 @@ namespace UGEL_BoletasWeb.Services.Parser
                         foreach (Match m in matchesConceptos)
                         {
                             string tipo = m.Groups[1].Value == "+" ? "I" : "D";
-                            tDet.Add(new BoletaDetalle(m.Groups[2].Value.ToUpper(), m.Groups[2].Value.ToUpper(), tipo, decimal.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture), usuarioQueSube));
+                            decimal montoReal = decimal.Parse(m.Groups[3].Value.Replace(",", ""), CultureInfo.InvariantCulture);
+                            tDet.Add(new BoletaDetalle(m.Groups[2].Value.ToUpper(), m.Groups[2].Value.ToUpper(), tipo, montoReal, usuarioQueSube));
                         }
                     }
                 }
 
+                // Guardar la última boleta si el archivo termina
                 if (!string.IsNullOrEmpty(tDni) && tDet.Count > 0)
                 {
                     GuardarBoletaTemporal(boletasProcesadas, tDni, tApe, tNom, tFecNac, tCargo, tTipoPta, tTipoPen, tNivMag, tTiemServ, tEsSalud, tFecReg, tCta, tLeyPer, tLeyMens, mesGlobal, anioGlobal, tImp, tDet, usuarioQueSube);
@@ -151,9 +157,23 @@ namespace UGEL_BoletasWeb.Services.Parser
             lista.Add(nBoleta);
         }
 
+        // 🛡️ BLINDAJE 4: Tolerancia a fallas ortográficas y abreviaturas (SEPT/SET, ENE/ENERO)
         private string ConvertirMesANumero(string m)
         {
-            return m.ToUpper() switch { "ENERO" => "01", "FEBRERO" => "02", "MARZO" => "03", "ABRIL" => "04", "MAYO" => "05", "JUNIO" => "06", "JULIO" => "07", "AGOSTO" => "08", "SETIEMBRE" => "09", "OCTUBRE" => "10", "NOVIEMBRE" => "11", "DICIEMBRE" => "12", _ => "00" };
+            var mes = m.ToUpper().Trim();
+            if (mes.StartsWith("ENE")) return "01";
+            if (mes.StartsWith("FEB")) return "02";
+            if (mes.StartsWith("MAR")) return "03";
+            if (mes.StartsWith("ABR")) return "04";
+            if (mes.StartsWith("MAY")) return "05";
+            if (mes.StartsWith("JUN")) return "06";
+            if (mes.StartsWith("JUL")) return "07";
+            if (mes.StartsWith("AGO")) return "08";
+            if (mes.StartsWith("SET") || mes.StartsWith("SEP")) return "09"; // Cubre SETIEMBRE y SEPTIEMBRE
+            if (mes.StartsWith("OCT")) return "10";
+            if (mes.StartsWith("NOV")) return "11";
+            if (mes.StartsWith("DIC")) return "12";
+            return "00";
         }
     }
 }
